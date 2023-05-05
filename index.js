@@ -5,17 +5,15 @@ import cheerio from "cheerio";
 import axios from "axios";
 const app = express();
 
-app.get('/', (req, res) => {
-    res.send('Choo Choo! Welcome to your Express app 🚅');
-})
+app.get("/", (req, res) => {
+  res.send("Choo Choo! Welcome to your Express app 🚅");
+});
 
 app.get("/json", (req, res) => {
-    res.json({"Choo Choo": "Welcome to your Express app 🚅"});
-})
-
+  res.json({ "Choo Choo": "Welcome to your Express app 🚅" });
+});
 
 const bot = new Telegraf(process.env.BOT_TOKEN);
-
 
 // Set the bot API endpoint
 app.use(await bot.createWebhook({ domain: process.env.WEBHOOK_DOMAIN }));
@@ -36,49 +34,45 @@ try {
     console.log("fanhao", ctx.message);
     const keyword = ctx.message.text;
     const url = `https://javdb.com/search?q=${keyword}`;
-
-    https.get(url, (response) => {
-      let data = "";
-      response.on("data", (chunk) => {
-        data += chunk;
-      });
-      response
-        .on("end", () => {
-          const html = data;
-          const $ = cheerio.load(html);
-          const matchItem = $(".movie-list .item").first();
-          const imgUrl = matchItem.find(".cover img").attr("src");
-          const href =
-            "https://javdb.com/" + matchItem.find(".box").attr("href");
-          let title = matchItem.find(".video-title").text().trim();
-          let score = matchItem.find(".score").text().trim();
-          let time = matchItem.find(".meta").text().trim();
-          console.log(imgUrl, href, title, score, time);
-          if(!imgUrl){
-            ctx.telegram.sendMessage(ctx.message.from.id, `未找到结果或网络错误`);
-            return;
-          }
-          title = title.replace(/-/g, "\\-");
-          score = score.replace(/-/g, "\\-");
-          time = time.replace(/-/g, "\\-");
-          title = title.replace(/\./g, "\\.");
-          score = score.replace(/\./g, "\\.");
-          time = time.replace(/\./g, "\\.");
-          const captionText = `
-          *${title}*
+    axios
+      .get(url)
+      .then((response) => {
+        const html = response.data;
+        const $ = cheerio.load(html);
+        const matchItem = $(".movie-list .item").first();
+        const imgUrl = matchItem.find(".cover img").attr("src");
+        const href = "https://javdb.com/" + matchItem.find(".box").attr("href");
+        let title = matchItem.find(".video-title").text().trim();
+        let score = matchItem.find(".score").text().trim();
+        let time = matchItem.find(".meta").text().trim();
+        console.log(imgUrl, href, title, score, time);
+        if (!imgUrl) {
+          ctx.telegram.sendMessage(ctx.message.from.id, `未找到结果或网络错误`);
+          return;
+        }
+        title = title.replace(/-/g, "\\-");
+        score = score.replace(/-/g, "\\-");
+        time = time.replace(/-/g, "\\-");
+        title = title.replace(/\./g, "\\.");
+        score = score.replace(/\./g, "\\.");
+        time = time.replace(/\./g, "\\.");
+        const captionText = `
+      *${title}*
 ${score} 
 _${time}_
 [javdb](${href})`;
-          ctx.replyWithPhoto(imgUrl, {
-            caption: captionText,
-            parse_mode: "MarkdownV2",
-          });
-        })
-        .on("error", (error) => {
-          console.error(error);
-          ctx.telegram.sendMessage(ctx.message.from.id, `未找到结果或网络错误`);
+        ctx.replyWithPhoto(imgUrl, {
+          caption: captionText,
+          parse_mode: "MarkdownV2",
         });
-    });
+      })
+      .catch((err) => {
+        console.log(err);
+        ctx.telegram.sendMessage(
+          ctx.message.from.id,
+          `網絡錯誤! Status: ${err}`
+        );
+      });
   });
 
   bot.hears("hzy", async (ctx) => {
@@ -119,17 +113,16 @@ _${time}_
       });
   });
 
-//   bot.on("message", (ctx) => {
-//     console.log(ctx.message);
-//     ctx.reply("Hello World!");
-//   });
+  //   bot.on("message", (ctx) => {
+  //     console.log(ctx.message);
+  //     ctx.reply("Hello World!");
+  //   });
 } catch (error) {
   console.log(error);
 }
 
-
 const port = process.env.PORT || 3000;
 
 app.listen(port, () => {
-    console.log(`Example app listening on port ${port}`)
-})
+  console.log(`Example app listening on port ${port}`);
+});
