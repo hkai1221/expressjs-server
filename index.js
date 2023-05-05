@@ -81,10 +81,10 @@ try {
       });
   });
 
-  bot.on("message", (ctx) => {
-    console.log(ctx.message);
-    ctx.reply("Hello World!");
-  });
+//   bot.on("message", (ctx) => {
+//     console.log(ctx.message);
+//     ctx.reply("Hello World!");
+//   });
 } catch (error) {
   console.log(error);
 }
