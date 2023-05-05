@@ -62,7 +62,7 @@ try {
     axios
       .get(url)
       .then((response) => {
-        const html = response;
+        const html = response.data;
         const $ = cheerio.load(html);
         const lastItem = $(".mw-contributions-list li").first();
         const lastDate = lastItem.find(".mw-changeslist-date").text();
