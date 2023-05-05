@@ -25,22 +25,60 @@ try {
   bot.help((ctx) => ctx.reply("Send me a sticker"));
   bot.on(message("sticker"), (ctx) => ctx.reply("👍"));
   bot.hears(/[\w]{1,10}-[\w]{1,10}/, (ctx) => {
+    // ctx.replyWithMarkdownV2('*匹配成功*,_请稍等_', {
+    //     reply_to_message_id: messageId,
+    //   })
+    //   .then(msgInfo => {
+    //     setTimeout(() => {
+    //       ctx.telegram.editMessageText(msgInfo.chat.id, msgInfo.message_id, undefined, `*暫未實裝*該功能🤗`,{parse_mode: "MarkdownV2"});
+    //     }, 2000);
+    //   });
     console.log("fanhao", ctx.message);
-    const messageId = ctx.message.message_id;
-    ctx
-      .reply("匹配成功,请稍等...", {
-        reply_to_message_id: messageId,
-      })
-      .then((msgInfo) => {
-        setTimeout(() => {
-          ctx.telegram.editMessageText(
-            msgInfo.chat.id,
-            msgInfo.message_id,
-            undefined,
-            "暫未實裝該功能🤗"
-          );
-        }, 2000);
+    const keyword = ctx.message.text;
+    const url = `https://javdb.com/search?q=${keyword}`;
+
+    https.get(url, (response) => {
+      let data = "";
+      response.on("data", (chunk) => {
+        data += chunk;
       });
+      response
+        .on("end", () => {
+          const html = data;
+          const $ = cheerio.load(html);
+          const matchItem = $(".movie-list .item").first();
+          const imgUrl = matchItem.find(".cover img").attr("src");
+          const href =
+            "https://javdb.com/" + matchItem.find(".box").attr("href");
+          let title = matchItem.find(".video-title").text().trim();
+          let score = matchItem.find(".score").text().trim();
+          let time = matchItem.find(".meta").text().trim();
+          console.log(imgUrl, href, title, score, time);
+          if(!imgUrl){
+            ctx.telegram.sendMessage(ctx.message.from.id, `未找到结果或网络错误`);
+            return;
+          }
+          title = title.replace(/-/g, "\\-");
+          score = score.replace(/-/g, "\\-");
+          time = time.replace(/-/g, "\\-");
+          title = title.replace(/\./g, "\\.");
+          score = score.replace(/\./g, "\\.");
+          time = time.replace(/\./g, "\\.");
+          const captionText = `
+          *${title}*
+${score} 
+_${time}_
+[javdb](${href})`;
+          ctx.replyWithPhoto(imgUrl, {
+            caption: captionText,
+            parse_mode: "MarkdownV2",
+          });
+        })
+        .on("error", (error) => {
+          console.error(error);
+          ctx.telegram.sendMessage(ctx.message.from.id, `未找到结果或网络错误`);
+        });
+    });
   });
 
   bot.hears("hzy", async (ctx) => {
